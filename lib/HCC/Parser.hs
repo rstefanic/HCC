@@ -3,12 +3,11 @@
 
 module HCC.Parser where
 
-import qualified HCC.AST as AST
-
-import HCC.Token
-
 import Control.Monad.Except
 import Control.Monad.State
+
+import qualified HCC.AST as AST
+import HCC.Token
 
 data ParseError 
     = UnexpectedToken TokenData
@@ -69,8 +68,49 @@ parseStatement = do
     
 parseExpression :: TokenParser AST.Expression
 parseExpression = do
-    n <- getTIntLiteral
-    return $ AST.Constant n
+    t <- get
+    case t of
+        (TokenData (TIntLiteral n) _ _):ts -> do
+            put ts
+            return $ AST.Constant n
+        tdata:ts -> do
+            if testForUnOp tdata
+                then do
+                    put ts
+                    u <- parseUnaryOp
+                    e <- parseExpression
+                    return $ AST.UnOp u e
+                else throwError (UnexpectedToken tdata)
+        [] -> throwError UnexpectedEof
+            
+
+testForUnOp :: TokenData -> Bool
+testForUnOp (TokenData unop _ _) = case unop of
+    TNegation          -> True
+    TBitwiseComplement -> True
+    TLogicalNegation   -> True
+    _                  -> False
+
+parseUnaryOp :: TokenParser AST.UnaryOp
+parseUnaryOp = do
+    t <- get
+    case t of
+        (TokenData TNegation _ _):ts -> do
+            put ts
+            return $ AST.Negation
+        (TokenData TBitwiseComplement _ _):ts -> do
+            put ts
+            return $ AST.BitwiseComplement
+        (TokenData TLogicalNegation _ _):ts -> do
+            put ts
+            return $ AST.LogicalNegation
+        tdata:_ -> throwError (UnexpectedToken tdata)
+        [] -> throwError UnexpectedEof
+        
+parseNegation :: TokenParser AST.UnaryOp
+parseNegation = do
+    consume TNegation
+    return $ AST.Negation
 
 consume :: Token -> TokenParser ()
 consume tok = satisfy (== tok) >> return ()

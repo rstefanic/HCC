@@ -1,6 +1,7 @@
 module HCC.Lexer where
 
 import Control.Applicative ((*>), (<|>))
+import Data.Char           (digitToInt)
 import Text.Parsec
     ( parse
     , try
@@ -18,9 +19,8 @@ import Text.Parsec
     , oneOf
     , choice
     )
+import Text.Parsec.Error  (ParseError)
 import Text.Parsec.String (Parser)
-import Text.Parsec.Error (ParseError)
-import Data.Char (digitToInt)
 
 import HCC.Token
 
@@ -73,6 +73,24 @@ tokenSemicolon = do
     _ <- spaces *> char ';'
     (line, col) <- getTokenLocation
     return $ TokenData TSemicolon line col
+
+tokenNegation :: Parser TokenData
+tokenNegation = do
+    _ <- spaces *> char '-'
+    (line, col) <- getTokenLocation
+    return $ TokenData TNegation line col
+
+tokenBitwiseComplement :: Parser TokenData
+tokenBitwiseComplement = do
+    _ <- spaces *> char '~'
+    (line, col) <- getTokenLocation
+    return $ TokenData TBitwiseComplement line col
+
+tokenLogicalNegation :: Parser TokenData
+tokenLogicalNegation = do
+    _ <- spaces *> char '!'
+    (line, col) <- getTokenLocation
+    return $ TokenData TLogicalNegation line col
 
 tokenInt :: Parser TokenData
 tokenInt = do

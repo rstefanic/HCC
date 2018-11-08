@@ -18,11 +18,25 @@ data Function = Function Name Type Statement
 data Statement = ReturnValue Expression
     deriving (Eq, Show)
 
-data Expression = Constant Int
+data Expression 
+    = Constant Int
+    | UnOp UnaryOp Expression
     deriving Eq
+
+data UnaryOp
+    = LogicalNegation
+    | BitwiseComplement
+    | Negation
+    deriving Eq
+
+instance Show UnaryOp where
+    show LogicalNegation   = "NOT "
+    show BitwiseComplement = "~"
+    show Negation          = "-"
 
 instance Show Expression where
     show (Constant x) = "<" ++ (show x) ++ ">"
+    show (UnOp u expr) = show u ++ show expr
 
 class Show a => PrettyPrint a where
     pprint :: Indent -> a -> String

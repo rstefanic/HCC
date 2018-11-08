@@ -17,3 +17,4 @@ emitReturn (AST.ReturnValue expr) =
 
 emitExpr :: AST.Expression -> String
 emitExpr (AST.Constant n) = show n
+emitExpr (AST.UnOp _ _) = undefined
