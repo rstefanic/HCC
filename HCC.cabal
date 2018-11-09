@@ -26,7 +26,6 @@ Library
         HCC.Lexer,
         HCC.Parser,
         HCC.Token
-    
 
     build-depends:
         base >= 4.7 && < 5,
@@ -50,3 +49,33 @@ executable HCC
         HCC,
         optparse-applicative,
         text
+
+test-suite tests
+    ghc-options:
+        -Wall -fno-warn-orphans
+    
+    type:
+        exitcode-stdio-1.0
+
+    other-modules:
+        HCC.AST,
+        HCC.Gen,
+        HCC.Lexer,
+        HCC.Parser,
+        HCC.Token
+
+    main-is:
+        tests.hs
+    
+    hs-source-dirs:
+        lib,
+        tests
+
+    build-depends:
+        base >= 4.7 && < 5,
+        hspec,
+        mtl,
+        parsec
+
+   default-language:
+        Haskell2010
