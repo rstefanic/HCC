@@ -11,13 +11,13 @@ import HCC.Token
 
 data ParseError 
     = UnexpectedToken TokenData
-    | UnexpectedEof
+    | UnexpectedEof String
     deriving Eq
 
 instance Show ParseError where
     show (UnexpectedToken (TokenData t l c)) = 
         "Unexpected token " ++ show t ++ " on line " ++ show l ++ " column " ++ show c
-    show (UnexpectedEof) = "Unexpected EOF where token should be."
+    show (UnexpectedEof x) = "Unexpected EOF where token should be: " ++ x
 
 newtype TokenParser a = TokenP 
     { runTokenP :: ExceptT ParseError (State [TokenData]) a }
@@ -46,7 +46,7 @@ satisfy predicate = do
                 put ts
                 return t
         tdata:_ -> throwError (UnexpectedToken tdata)
-        [] -> throwError UnexpectedEof
+        [] -> throwError $ UnexpectedEof "sat"
 
 parseFunction :: TokenParser AST.Function
 parseFunction = do
@@ -76,12 +76,12 @@ parseExpression = do
         tdata:ts -> do
             if testForUnOp tdata
                 then do
-                    put ts
                     u <- parseUnaryOp
+                    put ts
                     e <- parseExpression
                     return $ AST.UnOp u e
                 else throwError (UnexpectedToken tdata)
-        [] -> throwError UnexpectedEof
+        [] -> throwError $ UnexpectedEof "Parsing Expression"
             
 
 testForUnOp :: TokenData -> Bool
@@ -105,7 +105,7 @@ parseUnaryOp = do
             put ts
             return $ AST.LogicalNegation
         tdata:_ -> throwError (UnexpectedToken tdata)
-        [] -> throwError UnexpectedEof
+        [] -> throwError $ UnexpectedEof "Parsing UnOp"
         
 parseNegation :: TokenParser AST.UnaryOp
 parseNegation = do

@@ -28,91 +28,58 @@ lex :: String -> Either ParseError [TokenData]
 lex = parse (many1 lexTokens) "Tokenize"
 
 lexTokens :: Parser TokenData
-lexTokens = 
-        try tokenOpenBrace
-    <|> try tokenCloseBrace
-    <|> try tokenOpenParen
-    <|> try tokenCloseParen
-    <|> try tokenSemicolon
-    <|> try tokenInt
-    <|> try tokenReturn
-    <|> try tokenIntLiteral
-    <|> try tokenId
+lexTokens = choice allTokens
+    where
+        allTokens = fmap try 
+            [ genToken '{' TOpenBrace
+            , genToken '}' TCloseBrace
+            , genToken '(' TOpenParen
+            , genToken ')' TCloseParen
+            , genToken ';' TSemicolon
+            , genToken '-' TNegation
+            , genToken '~' TBitwiseComplement
+            , genToken '!' TLogicalNegation
+            , genReservedWordToken "int" TInt
+            , genReservedWordToken "return" TReturn
+            , tokenIntLiteral
+            , tokenId
+            ]
+
+genToken :: Char -> Token -> Parser TokenData
+genToken c t = do
+    spaces
+    _ <- char c
+    (line, col) <- getTokenLocation
+    return $ TokenData t line col
+
+genReservedWordToken :: String -> Token -> Parser TokenData
+genReservedWordToken w t = do
+    spaces
+    _ <- string w
+    (line, col) <- getTokenLocation
+    return $ TokenData t line col
 
 getTokenLocation :: Parser (Int, Int)
 getTokenLocation = do
     pos <- getPosition
     return (sourceLine pos, sourceColumn pos)
 
-tokenOpenBrace :: Parser TokenData
-tokenOpenBrace = do
-    _ <- spaces *> char '{'
-    (line, col) <- getTokenLocation
-    return $ TokenData TOpenBrace line col
-
-tokenCloseBrace :: Parser TokenData
-tokenCloseBrace = do
-    _ <- spaces *> char '}'
-    (line, col) <- getTokenLocation
-    return $ TokenData TCloseBrace line col
-
-tokenOpenParen :: Parser TokenData
-tokenOpenParen = do
-    _ <- spaces *> char '('
-    (line, col) <- getTokenLocation
-    return $ TokenData TOpenParen line col
-
-tokenCloseParen :: Parser TokenData
-tokenCloseParen = do
-    _ <- spaces *> char ')'
-    (line, col) <- getTokenLocation
-    return $ TokenData TCloseParen line col
-
-tokenSemicolon :: Parser TokenData
-tokenSemicolon = do
-    _ <- spaces *> char ';'
-    (line, col) <- getTokenLocation
-    return $ TokenData TSemicolon line col
-
-tokenNegation :: Parser TokenData
-tokenNegation = do
-    _ <- spaces *> char '-'
-    (line, col) <- getTokenLocation
-    return $ TokenData TNegation line col
-
-tokenBitwiseComplement :: Parser TokenData
-tokenBitwiseComplement = do
-    _ <- spaces *> char '~'
-    (line, col) <- getTokenLocation
-    return $ TokenData TBitwiseComplement line col
-
-tokenLogicalNegation :: Parser TokenData
-tokenLogicalNegation = do
-    _ <- spaces *> char '!'
-    (line, col) <- getTokenLocation
-    return $ TokenData TLogicalNegation line col
-
-tokenInt :: Parser TokenData
-tokenInt = do
-    _ <- spaces *> string "int"
-    (line, col) <- getTokenLocation
-    return $ TokenData  TInt line col
-
-tokenReturn :: Parser TokenData
-tokenReturn = do
-    _ <- spaces *> string "return"
-    (line, col) <- getTokenLocation
-    return $ TokenData TReturn line col
-
 tokenIntLiteral :: Parser TokenData
 tokenIntLiteral = do
     spaces 
-    n <- choice [readOctInt, readDecInt, readHexInt, readBinInt]
+    n <- choice 
+        [ try readHexInt 
+        , try readDecInt 
+        , try readOctInt 
+        , try readBinInt
+        ]
     (line, col) <- getTokenLocation
     return $ TokenData (TIntLiteral n) line col
 
 readDecInt :: Parser Int
-readDecInt = read <$> many1 digit
+readDecInt = do
+    n <- many1 digit
+    return $ read n
 
 readOctInt :: Parser Int
 readOctInt = do
@@ -122,9 +89,9 @@ readOctInt = do
 
 readHexInt :: Parser Int
 readHexInt = do
-    _ <- string "0x"
+    prefix <- string "0x"
     n <- many1 hexDigit
-    return $ read n
+    return $ read $ prefix ++ n
 
 readBinInt :: Parser Int
 readBinInt = do
@@ -138,12 +105,7 @@ binToDec = foldr step 0
 
 tokenId :: Parser TokenData
 tokenId = do
-    identifier <- spaces *> 
-        ( many1
-        $ letter
-        <|> char '-'
-        <|> char '_'
-        <|> digit
-        )
+    start <- spaces *> (try letter) <|> (char '_')
+    rest <- many1 $ letter <|> char '_' <|> digit <|> char '-'
     (line, col) <- getTokenLocation
-    return $ TokenData (TId identifier) line col
+    return $ TokenData (TId $ [start] ++ rest) line col
