@@ -6,6 +6,7 @@ import           Data.Semigroup      ((<>))
 import           Data.Text           (pack)
 import qualified Data.Text.IO as DTI (writeFile)
 import           Options.Applicative
+import           System.Directory    (doesFileExist)
 
 import HCC.Lexer
 import HCC.Parser
@@ -53,5 +54,17 @@ writeASMToFile :: Program -> Maybe String -> IO ()
 writeASMToFile ast filename = do
     asm <- return $ generate ast
     case filename of
-        Nothing -> DTI.writeFile "./a.s" (pack asm)
+        Nothing -> do
+            newFileName <- genFileName 0 
+            DTI.writeFile newFileName (pack asm)
         Just file -> DTI.writeFile file (pack asm)
+
+genFileName :: Int -> IO String
+genFileName n = do
+    let fileName = (if (n == 0) 
+        then "a" 
+        else "a" <> (show n)) <> ".s"
+    fileExists <- doesFileExist fileName
+    if fileExists 
+        then genFileName (n + 1)
+        else return fileName
