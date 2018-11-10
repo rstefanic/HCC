@@ -3,7 +3,6 @@ module HCC.Token where
 data TokenData = TokenData
     { token        :: !Token
     , lineNumber   :: !Int
-    , columnNumber :: !Int
     }
     deriving (Eq, Show)
 

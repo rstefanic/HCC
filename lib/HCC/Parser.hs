@@ -15,9 +15,9 @@ data ParseError
     deriving Eq
 
 instance Show ParseError where
-    show (UnexpectedToken (TokenData t l c)) = 
-        "Unexpected token " ++ show t ++ " on line " ++ show l ++ " column " ++ show c
-    show (UnexpectedEof x) = "Unexpected EOF where token should be: " ++ x
+    show (UnexpectedToken (TokenData t l)) = 
+        "Unexpected token " <> show t <> " on line " <> show l  <> "."
+    show (UnexpectedEof x) = "Unexpected EOF where token should be: " <> x
 
 newtype TokenParser a = TokenP 
     { runTokenP :: ExceptT ParseError (State [TokenData]) a }
@@ -42,7 +42,7 @@ satisfy :: (Token -> Bool) -> TokenParser Token
 satisfy predicate = do
     s <- get
     case s of
-        (TokenData t _ _):ts | predicate t -> do
+        (TokenData t _):ts | predicate t -> do
                 put ts
                 return t
         tdata:_ -> throwError (UnexpectedToken tdata)
@@ -70,7 +70,7 @@ parseExpression :: TokenParser AST.Expression
 parseExpression = do
     t <- get
     case t of
-        (TokenData (TIntLiteral n) _ _):ts -> do
+        (TokenData (TIntLiteral n) _):ts -> do
             put ts
             return $ AST.Constant n
         tdata:ts -> do
@@ -85,7 +85,7 @@ parseExpression = do
             
 
 testForUnOp :: TokenData -> Bool
-testForUnOp (TokenData unop _ _) = case unop of
+testForUnOp (TokenData unop _) = case unop of
     TNegation          -> True
     TBitwiseComplement -> True
     TLogicalNegation   -> True
@@ -95,13 +95,13 @@ parseUnaryOp :: TokenParser AST.UnaryOp
 parseUnaryOp = do
     t <- get
     case t of
-        (TokenData TNegation _ _):ts -> do
+        (TokenData TNegation _):ts -> do
             put ts
             return $ AST.Negation
-        (TokenData TBitwiseComplement _ _):ts -> do
+        (TokenData TBitwiseComplement _):ts -> do
             put ts
             return $ AST.BitwiseComplement
-        (TokenData TLogicalNegation _ _):ts -> do
+        (TokenData TLogicalNegation _):ts -> do
             put ts
             return $ AST.LogicalNegation
         tdata:_ -> throwError (UnexpectedToken tdata)

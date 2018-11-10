@@ -3,21 +3,20 @@ module HCC.Lexer where
 import Control.Applicative ((*>), (<|>))
 import Data.Char           (digitToInt)
 import Text.Parsec
-    ( parse
-    , try
-    , many1
-    , char
-    , spaces
+    ( char
+    , choice
     , digit
-    , letter
-    , string
     , getPosition
-    , sourceLine
-    , sourceColumn
     , hexDigit
+    , letter
+    , many1
     , octDigit
     , oneOf
-    , choice
+    , parse
+    , sourceLine
+    , spaces
+    , string
+    , try
     )
 import Text.Parsec.Error  (ParseError)
 import Text.Parsec.String (Parser)
@@ -49,20 +48,20 @@ genToken :: Char -> Token -> Parser TokenData
 genToken c t = do
     spaces
     _ <- char c
-    (line, col) <- getTokenLocation
-    return $ TokenData t line col
+    line <- getTokenLocation
+    return $ TokenData t line
 
 genReservedWordToken :: String -> Token -> Parser TokenData
 genReservedWordToken w t = do
     spaces
     _ <- string w
-    (line, col) <- getTokenLocation
-    return $ TokenData t line col
+    line <- getTokenLocation
+    return $ TokenData t line
 
-getTokenLocation :: Parser (Int, Int)
+getTokenLocation :: Parser Int
 getTokenLocation = do
     pos <- getPosition
-    return (sourceLine pos, sourceColumn pos)
+    return $ sourceLine pos
 
 tokenIntLiteral :: Parser TokenData
 tokenIntLiteral = do
@@ -73,8 +72,8 @@ tokenIntLiteral = do
         , try readOctInt 
         , try readBinInt
         ]
-    (line, col) <- getTokenLocation
-    return $ TokenData (TIntLiteral n) line col
+    line <- getTokenLocation
+    return $ TokenData (TIntLiteral n) line
 
 readDecInt :: Parser Int
 readDecInt = do
@@ -107,5 +106,5 @@ tokenId :: Parser TokenData
 tokenId = do
     start <- spaces *> (try letter) <|> (char '_')
     rest <- many1 $ letter <|> char '_' <|> digit <|> char '-'
-    (line, col) <- getTokenLocation
-    return $ TokenData (TId $ [start] ++ rest) line col
+    line <- getTokenLocation
+    return $ TokenData (TId $ [start] ++ rest) line
